@@ -1,0 +1,532 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ERP Director | I.E.P. Dayiva School - Control QR</title>
+
+  <!-- Favicon Oficial de la Institución -->
+  <link rel="icon" type="image/jpeg" href="logo.jpeg" id="dynamicFavicon" />
+  <link rel="apple-touch-icon" href="logo.jpeg" />
+
+  <!-- Iconos FontAwesome 6 & Boxicons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+
+  <!-- Estilos SaaS -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Librerías Externas: Chart.js, QRCodeStyling y Firebase 10.8.0 Compat -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://unpkg.com/qr-code-styling@1.6.0-rc.1/lib/qr-code-styling.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="erp-layout">
+    <!-- ==================== SIDEBAR COLAPSABLE ==================== -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <img src="logo.jpeg" alt="Escudo I.E.P. Dayiva School" class="js-school-logo" />
+        <div class="sidebar-brand-text">
+          <div class="sidebar-brand-title js-school-name">I.E.P. Dayiva School</div>
+          <span class="sidebar-brand-sub">ERP Control QR Cloud</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <button class="nav-item active" data-tab="tab-dashboard" onclick="cambiarPestana('tab-dashboard', this)">
+          <i class="fa-solid fa-chart-pie"></i>
+          <span class="nav-label">Dashboard en Vivo</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-alumnos" onclick="cambiarPestana('tab-alumnos', this)">
+          <i class="fa-solid fa-id-card-clip"></i>
+          <span class="nav-label">Alumnos y Carnets QR</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-reportes" onclick="cambiarPestana('tab-reportes', this)">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <span class="nav-label">Historial y Alertas</span>
+        </button>
+
+        <button class="nav-item" data-tab="tab-config" onclick="cambiarPestana('tab-config', this)">
+          <i class="fa-solid fa-sliders"></i>
+          <span class="nav-label">Configuración</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <a href="escanear.html" target="_blank" class="btn-scanner-link" title="Abrir App Móvil del Profesor">
+          <i class="fa-solid fa-qrcode"></i>
+          <span class="sidebar-footer-info">Abrir Escáner Puerta</span>
+        </a>
+      </div>
+    </aside>
+
+    <!-- ==================== CONTENEDOR PRINCIPAL ==================== -->
+    <div class="main-wrapper">
+      <!-- ENCABEZADO SUPERIOR -->
+      <header class="top-header">
+        <div class="header-left">
+          <button class="btn-icon" id="btnToggleSidebar" onclick="toggleSidebar()" title="Colapsar / Expandir Menú">
+            <i class="fa-solid fa-bars-staggered"></i>
+          </button>
+          <div class="header-school-info">
+            <img src="logo.jpeg" alt="Logo I.E.P. Dayiva School" class="header-school-logo js-school-logo" />
+            <div>
+              <div class="header-school-name js-school-name">I.E.P. Dayiva School</div>
+              <div class="header-school-motto js-school-motto">Ciencia, Valores y Liderazgo Digital - Juliaca</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="header-right">
+          <div class="live-status-pill" id="liveConnectionBadge">
+            <span class="led-dot"></span>
+            <span>Online - Sincronizado</span>
+          </div>
+
+          <div class="digital-clock">
+            <i class="fa-regular fa-clock"></i>
+            <span id="headerClock">00:00:00</span>
+          </div>
+
+          <button class="btn-icon btn-theme-toggle" onclick="alternarTema()" title="Cambiar Modo Claro / Oscuro">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- ÁREA DE CONTENIDO (4 MÓDULOS) -->
+      <main class="content-area">
+        <!-- ==============================================================
+             PESTAÑA 1: DASHBOARD EN VIVO (CENTRO DE MONITOREO)
+             ============================================================== -->
+        <section id="tab-dashboard" class="tab-pane active">
+          <!-- Tarjeta Destacada "Último Ingreso" -->
+          <div class="hero-last-scan" id="heroLastScan">
+            <div class="hero-scan-left">
+              <div class="hero-avatar" id="heroAvatar">QR</div>
+              <div>
+                <div class="hero-scan-tag">
+                  <i class="fa-solid fa-bolt"></i> Último Ingreso en Tiempo Real
+                </div>
+                <div class="hero-student-name" id="heroNombre">Esperando escaneo en puerta...</div>
+                <div class="hero-student-meta">
+                  <span id="heroGrado"><i class="fa-solid fa-graduation-cap"></i> Sin registros hoy</span>
+                  <span id="heroCodigo"><i class="fa-solid fa-barcode"></i> ---</span>
+                </div>
+              </div>
+            </div>
+            <div class="hero-scan-right">
+              <div class="hero-time" id="heroHora">--:--:--</div>
+              <div id="heroBadgeEstado">
+                <span class="badge-status badge-justificado">EN ESPERA</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- 4 Tarjetas KPI -->
+          <div class="kpi-grid">
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div>
+                  <div class="kpi-label">Total Matriculados</div>
+                  <div class="kpi-value" id="kpiMatriculados">30</div>
+                </div>
+                <div class="kpi-icon blue"><i class="fa-solid fa-users"></i></div>
+              </div>
+              <div class="kpi-footer">
+                <span>1° a 6° Primaria</span>
+                <span class="kpi-percent-badge badge-justificado">100% Padrón</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div>
+                  <div class="kpi-label">Asistencias Hoy</div>
+                  <div class="kpi-value" id="kpiAsistenciasHoy">0</div>
+                </div>
+                <div class="kpi-icon green"><i class="fa-solid fa-user-check"></i></div>
+              </div>
+              <div class="kpi-footer">
+                <span>Presentes en aula</span>
+                <span class="kpi-percent-badge badge-puntual" id="kpiPorcentajeAsistencia">0%</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div>
+                  <div class="kpi-label">Tardanzas Hoy</div>
+                  <div class="kpi-value" id="kpiTardanzasHoy">0</div>
+                </div>
+                <div class="kpi-icon red"><i class="fa-solid fa-user-clock"></i></div>
+              </div>
+              <div class="kpi-footer">
+                <span>Fuera de tolerancia</span>
+                <span class="kpi-percent-badge badge-tardanza" id="kpiPorcentajeTardanza">0%</span>
+              </div>
+            </div>
+
+            <div class="kpi-card">
+              <div class="kpi-top">
+                <div>
+                  <div class="kpi-label">Ausentes / Por llegar</div>
+                  <div class="kpi-value" id="kpiAusentesHoy">30</div>
+                </div>
+                <div class="kpi-icon amber"><i class="fa-solid fa-user-xmark"></i></div>
+              </div>
+              <div class="kpi-footer">
+                <span>Pendientes de ingreso</span>
+                <span class="kpi-percent-badge badge-ausente" id="kpiPorcentajeAusentes">100%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Doble Gráfico Estadístico (Chart.js) -->
+          <div class="charts-grid">
+            <div class="card-panel">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-chart-column"></i> Asistencias de Hoy por Grado (1° a 6° Primaria)
+                </h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartGrados"></canvas>
+              </div>
+            </div>
+
+            <div class="card-panel">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-chart-pie"></i> Distribución del Día (Puntuales vs Tardanzas vs Faltas)
+                </h3>
+              </div>
+              <div class="chart-container">
+                <canvas id="chartDona"></canvas>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tabla de Ingresos en Tiempo Real -->
+          <div class="card-panel">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fa-solid fa-satellite-dish"></i> Monitor de Ingresos en Tiempo Real (Hoy)
+              </h3>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-outline btn-sm" onclick="simularIngresoAleatorio()">
+                  <i class="fa-solid fa-wand-magic-sparkles"></i> Simular Ingreso QR
+                </button>
+                <a href="escanear.html" target="_blank" class="btn btn-primary btn-sm">
+                  <i class="fa-solid fa-mobile-screen-button"></i> Abrir Escáner Profesor
+                </a>
+              </div>
+            </div>
+
+            <div class="table-responsive">
+              <table class="saas-table">
+                <thead>
+                  <tr>
+                    <th>Alumno</th>
+                    <th>Código QR</th>
+                    <th>Grado</th>
+                    <th>Hora Exacta</th>
+                    <th>Estado</th>
+                    <th>Acción Rápida</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaVivoBody">
+                  <tr>
+                    <td colspan="6" style="text-align:center; padding:26px; color:var(--text-secondary);">
+                      Sincronizando registros en vivo desde Firebase Firestore...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             PESTAÑA 2: GESTIÓN DE ALUMNOS Y GENERADOR DE CARNETS PRO
+             ============================================================== -->
+        <section id="tab-alumnos" class="tab-pane">
+          <div class="card-panel no-print" style="margin-bottom: 24px;">
+            <div class="card-header">
+              <h3 class="card-title">
+                <i class="fa-solid fa-user-plus"></i> Formulario de Matrícula Rápida en la Nube
+              </h3>
+              <div style="display:flex; gap:10px;">
+                <button class="btn btn-primary" onclick="imprimirTodosLosCarnets()">
+                  <i class="fa-solid fa-print"></i> Imprimir Todos en Hoja A4
+                </button>
+              </div>
+            </div>
+
+            <form id="formNuevoAlumno" class="form-grid" onsubmit="registrarNuevoAlumno(event)">
+              <div class="form-group">
+                <label for="inputNombreAlumno">Apellidos y Nombres del Estudiante</label>
+                <input type="text" id="inputNombreAlumno" class="form-control" placeholder="Ej: Sofía Fernanda Vargas Ruiz" required />
+              </div>
+
+              <div class="form-group">
+                <label for="inputGradoAlumno">Grado de Primaria</label>
+                <select id="inputGradoAlumno" class="form-control" required>
+                  <option value="1° Primaria">1° Primaria</option>
+                  <option value="2° Primaria">2° Primaria</option>
+                  <option value="3° Primaria">3° Primaria</option>
+                  <option value="4° Primaria">4° Primaria</option>
+                  <option value="5° Primaria">5° Primaria</option>
+                  <option value="6° Primaria">6° Primaria</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="inputTelefonoPadre">WhatsApp del Apoderado (con cód. país)</label>
+                <input type="text" id="inputTelefonoPadre" class="form-control" placeholder="Ej: 51987654399" required />
+              </div>
+
+              <div class="form-group">
+                <button type="submit" class="btn btn-success" style="width:100%;">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Matricular y Generar QR
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Filtros por Grado y Buscador de Carnets -->
+          <div class="card-panel no-print" style="margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; flex-wrap:wrap;">
+              <div class="filter-pills" id="filtrosGradoCarnets">
+                <button class="filter-pill active" onclick="filtrarCarnetsGrado('TODOS', this)">Todos (30+)</button>
+                <button class="filter-pill" onclick="filtrarCarnetsGrado('1° Primaria', this)">1° Primaria</button>
+                <button class="filter-pill" onclick="filtrarCarnetsGrado('2° Primaria', this)">2° Primaria</button>
+                <button class="filter-pill" onclick="filtrarCarnetsGrado('3° Primaria', this)">3° Primaria</button>
+                <button class="filter-pill" onclick="filtrarCarnetsGrado('4° Primaria', this)">4° Primaria</button>
+                <button class="filter-pill" onclick="filtrarCarnetsGrado('5° Primaria', this)">5° Primaria</button>
+                <button class="filter-pill" onclick="filtrarCarnetsGrado('6° Primaria', this)">6° Primaria</button>
+              </div>
+
+              <div style="min-width: 260px; flex:1; max-width:340px;">
+                <input
+                  type="text"
+                  id="buscadorCarnets"
+                  class="form-control"
+                  placeholder="🔍 Buscar carnet por nombre o código PRI-..."
+                  oninput="renderizarCarnets()"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- Cuadrícula de Carnets PVC -->
+          <div class="carnets-grid" id="contenedorCarnets"></div>
+        </section>
+
+        <!-- ==============================================================
+             PESTAÑA 3: HISTORIAL, REPORTES Y ALERTAS A PADRES (WHATSAPP)
+             ============================================================== -->
+        <section id="tab-reportes" class="tab-pane">
+          <div class="card-panel">
+            <!-- Encabezado y Botones de Exportación -->
+            <div class="card-header no-print">
+              <h3 class="card-title">
+                <i class="fa-solid fa-file-waveform"></i> Historial de Asistencia, Ausentes y Alertas WhatsApp
+              </h3>
+              <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                <button class="btn btn-outline" id="btnToggleAusentes" onclick="activarVistaAusentes()">
+                  <i class="fa-solid fa-user-slash"></i> Ver Lista de Ausentes del Día
+                </button>
+                <button class="btn btn-success" onclick="exportarReporteCSV()">
+                  <i class="fa-solid fa-file-excel"></i> Descargar Excel (CSV)
+                </button>
+                <button class="btn btn-primary" onclick="imprimirReporteDiaPDF()">
+                  <i class="fa-solid fa-file-pdf"></i> Imprimir Reporte Oficial PDF
+                </button>
+              </div>
+            </div>
+
+            <!-- Filtros Avanzados -->
+            <div class="form-grid no-print" style="margin-bottom: 20px;">
+              <div class="form-group">
+                <label for="filtroBusquedaReporte">Buscar Alumno o Código</label>
+                <input
+                  type="text"
+                  id="filtroBusquedaReporte"
+                  class="form-control"
+                  placeholder="Nombre o PRI-001..."
+                  oninput="renderizarTablaReportes()"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="filtroFechaReporte">Fecha de Consulta</label>
+                <input
+                  type="date"
+                  id="filtroFechaReporte"
+                  class="form-control"
+                  onchange="renderizarTablaReportes()"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="filtroGradoReporte">Filtrar por Grado</label>
+                <select id="filtroGradoReporte" class="form-control" onchange="renderizarTablaReportes()">
+                  <option value="TODOS">Todos los Grados</option>
+                  <option value="1° Primaria">1° Primaria</option>
+                  <option value="2° Primaria">2° Primaria</option>
+                  <option value="3° Primaria">3° Primaria</option>
+                  <option value="4° Primaria">4° Primaria</option>
+                  <option value="5° Primaria">5° Primaria</option>
+                  <option value="6° Primaria">6° Primaria</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="filtroEstadoReporte">Estado de Asistencia</label>
+                <select id="filtroEstadoReporte" class="form-control" onchange="renderizarTablaReportes()">
+                  <option value="TODOS">Todos los Registrados</option>
+                  <option value="PUNTUAL">Solo Puntuales</option>
+                  <option value="TARDANZA">Solo Tardanzas</option>
+                  <option value="JUSTIFICADO">Solo Justificados</option>
+                  <option value="AUSENTES">Ausentes del Día (Sin registro)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Cabecera exclusiva para Impresión de Reporte Oficial -->
+            <div id="printReportHeader" style="display:none; margin-bottom:18px; border-bottom:2px solid #0f172a; padding-bottom:12px;">
+              <div style="display:flex; align-items:center; gap:14px;">
+                <img src="logo.jpeg" alt="Logo" class="js-school-logo" style="width:52px; height:52px; object-fit:contain; border-radius:10px;" />
+                <div>
+                  <h2 class="js-school-name" style="margin:0;">I.E.P. Dayiva School</h2>
+                  <p style="margin:4px 0 0; font-size:0.85rem;">Reporte Oficial de Control de Asistencia Escolar QR</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tabla de Historial / Ausentes -->
+            <div class="table-responsive">
+              <table class="saas-table">
+                <thead>
+                  <tr>
+                    <th>Estudiante</th>
+                    <th>Código</th>
+                    <th>Grado</th>
+                    <th>Fecha</th>
+                    <th>Hora Ingreso</th>
+                    <th>Estado</th>
+                    <th class="no-print">Acciones y Alerta a Padres</th>
+                  </tr>
+                </thead>
+                <tbody id="tablaReportesBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==============================================================
+             PESTAÑA 4: CONFIGURACIÓN INSTITUCIONAL
+             ============================================================== -->
+        <section id="tab-config" class="tab-pane">
+          <div class="charts-grid" style="grid-template-columns: 1fr 1fr;">
+            <!-- Personalización Institucional en Tiempo Real -->
+            <div class="card-panel">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-school-flag"></i> Identidad Institucional en la Nube
+                </h3>
+              </div>
+
+              <form onsubmit="guardarIdentidadColegio(event)" style="display:flex; flex-direction:column; gap:16px;">
+                <div style="display:flex; align-items:center; gap:18px; padding:14px; background:var(--bg-surface-alt); border-radius:14px; border:1px solid var(--border-color);">
+                  <img src="logo.jpeg" alt="Preview Escudo" class="js-school-logo" style="width:72px; height:72px; aspect-ratio:1/1; object-fit:contain; object-position:center; border-radius:14px; background:#fff; padding:4px; border:1.5px solid rgba(245,158,11,0.65); box-shadow:0 3px 10px rgba(0,0,0,0.08);" />
+                  <div style="flex:1;">
+                    <div style="font-weight:700; font-size:0.9rem; margin-bottom:6px;">Escudo / Logo Institucional</div>
+                    <input type="file" id="inputLogoFile" accept="image/*" style="display:none;" onchange="procesarSubidaLogo(event)" />
+                    <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                      <button type="button" class="btn btn-outline btn-sm" onclick="document.getElementById('inputLogoFile').click()">
+                        <i class="fa-solid fa-upload"></i> Subir Logo desde PC
+                      </button>
+                      <button type="button" class="btn btn-outline btn-sm" onclick="restaurarLogoVectorial()">
+                        <i class="fa-solid fa-rotate-left"></i> Escudo por Defecto
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group">
+                  <label for="cfgNombreColegio">Nombre Oficial del Colegio</label>
+                  <input type="text" id="cfgNombreColegio" class="form-control" required />
+                </div>
+
+                <div class="form-group">
+                  <label for="cfgLemaColegio">Lema Institucional</label>
+                  <input type="text" id="cfgLemaColegio" class="form-control" required />
+                </div>
+
+                <button type="submit" class="btn btn-primary">
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar y Sincronizar en Carnets y Móvil
+                </button>
+              </form>
+            </div>
+
+            <!-- Reglas de Horario y Mantenimiento -->
+            <div class="card-panel" style="display:flex; flex-direction:column; justify-content:space-between; gap:20px;">
+              <div>
+                <div class="card-header">
+                  <h3 class="card-title">
+                    <i class="fa-solid fa-clock-rotate-left"></i> Reglas de Horario de Entrada
+                  </h3>
+                </div>
+
+                <form onsubmit="guardarReglasHorario(event)" style="display:flex; flex-direction:column; gap:16px;">
+                  <div class="form-group">
+                    <label for="cfgHoraLimite">Hora Límite de Entrada Puntual</label>
+                    <input type="time" id="cfgHoraLimite" class="form-control" required />
+                  </div>
+
+                  <div class="form-group">
+                    <label for="cfgTolerancia">Minutos de Tolerancia adicionales</label>
+                    <input type="number" id="cfgTolerancia" class="form-control" min="0" max="120" required />
+                  </div>
+
+                  <button type="submit" class="btn btn-success">
+                    <i class="fa-solid fa-check-double"></i> Actualizar Reglas de Horario en Vivo
+                  </button>
+                </form>
+              </div>
+
+              <!-- Zona de Mantenimiento -->
+              <div style="padding:18px; border-radius:14px; background:var(--danger-bg); border:1px solid rgba(239,68,68,0.3);">
+                <div style="font-weight:700; color:var(--danger-text); margin-bottom:6px;">
+                  <i class="fa-solid fa-screwdriver-wrench"></i> Mantenimiento de Base de Datos
+                </div>
+                <p style="font-size:0.82rem; color:var(--text-secondary); margin-bottom:12px;">
+                  Limpia las asistencias de prueba o restaura la nómina semilla de 30 alumnos de Primaria.
+                </p>
+                <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                  <button type="button" class="btn btn-danger btn-sm" onclick="limpiarHistorialAsistencias()">
+                    <i class="fa-solid fa-trash-can"></i> Limpiar Historial de Asistencias
+                  </button>
+                  <button type="button" class="btn btn-outline btn-sm" onclick="restaurarPadronSemilla()">
+                    <i class="fa-solid fa-users-gear"></i> Restaurar 30 Alumnos Semilla
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <!-- Scripts de Configuración y Lógica del Director -->
+  <script src="config-datos.js"></script>
+  <script src="director.js"></script>
+</body>
+</html>

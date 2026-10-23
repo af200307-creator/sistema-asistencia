@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Profesor en Puerta | I.E.P. Dayiva School - Escáner QR</title>
+
+  <!-- Favicon Oficial de la Institución -->
+  <link rel="icon" type="image/jpeg" href="logo.jpeg" id="dynamicFavicon" />
+  <link rel="apple-touch-icon" href="logo.jpeg" />
+
+  <!-- Iconos FontAwesome 6 & Boxicons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  <link rel="stylesheet" href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" />
+
+  <!-- Estilos SaaS -->
+  <link rel="stylesheet" href="styles.css" />
+
+  <!-- Librerías Externas: html5-qrcode y Firebase 10.8.0 Compat -->
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore-compat.js"></script>
+</head>
+<body>
+  <div class="mobile-app-shell">
+    <!-- ==================== ENCABEZADO MÓVIL ==================== -->
+    <header class="mobile-header">
+      <div class="mobile-header-top">
+        <div class="mobile-brand">
+          <img src="logo.jpeg" alt="Escudo I.E.P. Dayiva School" class="js-school-logo" />
+          <div>
+            <div class="mobile-brand-title js-school-name">I.E.P. Dayiva School</div>
+            <div style="display:flex; align-items:center; gap:6px; font-size:0.72rem; color:var(--success); font-weight:700;">
+              <span class="led-dot" style="width:7px; height:7px;"></span>
+              <span>Sincronizado con Dirección</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:8px;">
+          <a href="director.html" class="btn-icon" title="Ir al Panel del Director">
+            <i class="fa-solid fa-gauge-high"></i>
+          </a>
+          <button class="btn-icon btn-theme-toggle" onclick="alternarTema()" title="Cambiar Tema">
+            <i class="fa-solid fa-moon"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Reloj en Vivo e Insignia Dinámica de Horario -->
+      <div class="mobile-status-bar">
+        <div class="digital-clock" style="padding:4px 10px; font-size:0.84rem;">
+          <i class="fa-regular fa-clock"></i>
+          <span id="mobileClock">00:00:00</span>
+        </div>
+
+        <div id="badgeHorarioDinamico" class="schedule-dynamic-badge badge-puntual">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Horario Puntual</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- ==================== RESUMEN RÁPIDO EN PÍLDORAS ==================== -->
+    <section class="mobile-pills-summary">
+      <div class="summary-pill" style="border-color: rgba(16,185,129,0.35);">
+        Puntuales
+        <span id="pillPuntuales" style="color:var(--success);">0</span>
+      </div>
+      <div class="summary-pill" style="border-color: rgba(239,68,68,0.35);">
+        Tardanzas
+        <span id="pillTardanzas" style="color:var(--danger);">0</span>
+      </div>
+      <div class="summary-pill" style="border-color: rgba(245,158,11,0.35);">
+        Faltan
+        <span id="pillFaltan" style="color:var(--warning);">30</span>
+      </div>
+    </section>
+
+    <!-- ==================== ESCÁNER QR AVANZADO ==================== -->
+    <section class="scanner-stage">
+      <div class="scanner-viewport-wrapper">
+        <div id="reader"></div>
+
+        <!-- Marco Neón y Línea Láser Animada -->
+        <div class="scanner-overlay-ui" id="scannerLaserOverlay">
+          <div class="neon-frame">
+            <div class="neon-corner tl"></div>
+            <div class="neon-corner tr"></div>
+            <div class="neon-corner bl"></div>
+            <div class="neon-corner br"></div>
+            <div class="laser-line" id="laserLine"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Controles de Cámara -->
+      <div class="camera-controls-grid">
+        <button type="button" class="cam-btn" id="btnSwitchCam" onclick="cambiarCamara()">
+          <i class="fa-solid fa-camera-rotate"></i>
+          <span>Cámara</span>
+        </button>
+
+        <button type="button" class="cam-btn" id="btnFlash" onclick="alternarLinterna()">
+          <i class="fa-solid fa-bolt"></i>
+          <span>Linterna</span>
+        </button>
+
+        <button type="button" class="cam-btn" id="btnPauseCam" onclick="alternarPausaCamara()">
+          <i class="fa-solid fa-pause"></i>
+          <span id="txtPauseCam">Pausar</span>
+        </button>
+
+        <button type="button" class="cam-btn active" id="btnToggleVoice" onclick="alternarVoz()">
+          <i class="fa-solid fa-volume-high" id="iconVoice"></i>
+          <span id="txtVoice">Voz ON</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- ==================== BARRA DE PROGRESO Y RESPALDO MANUAL ==================== -->
+    <section class="mobile-section">
+      <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.8rem; font-weight:700;">
+        <span>Progreso de Asistencia del Día</span>
+        <span id="textoProgresoDia" style="color:var(--primary);">0% (0/30)</span>
+      </div>
+      <div class="progress-bar-track">
+        <div class="progress-bar-fill" id="barraProgresoDia"></div>
+      </div>
+
+      <!-- Selector Manual Desplegable (30 Alumnos) -->
+      <div style="margin-top:14px;">
+        <label for="selectAlumnoManual" style="font-size:0.78rem; font-weight:700; color:var(--text-secondary); display:block; margin-bottom:6px;">
+          <i class="fa-solid fa-hand-pointer"></i> Registro Manual Rápido (Si olvidó su carnet)
+        </label>
+        <div style="display:flex; gap:8px;">
+          <select id="selectAlumnoManual" class="form-control" style="flex:1; font-size:0.85rem;">
+            <option value="">Seleccionar alumno de la lista...</option>
+          </select>
+          <button type="button" class="btn btn-primary" onclick="registrarDesdeSelectorManual()">
+            <i class="fa-solid fa-check"></i> Registrar
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== HISTORIAL RECIENTE (ÚLTIMOS 5 ESCANEOS) ==================== -->
+    <section class="mobile-section" style="flex:1;">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <h4 style="font-size:0.88rem; font-weight:800; color:var(--text-primary);">
+          <i class="fa-solid fa-clock-rotate-left" style="color:var(--primary);"></i> Últimos 5 Escaneos en Puerta
+        </h4>
+        <span style="font-size:0.74rem; color:var(--text-secondary);">Tiempo Real</span>
+      </div>
+
+      <div class="recent-scan-list" id="listaRecientesMobile">
+        <div style="text-align:center; padding:18px; color:var(--text-secondary); font-size:0.84rem;">
+          Listo para escanear códigos QR...
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <!-- ==================== MODAL FLOTANTE CON ANIMACIÓN SVG ==================== -->
+  <div class="scan-modal-backdrop" id="modalResultadoScan">
+    <div class="scan-modal-card">
+      <div class="svg-anim-box" id="modalSvgContainer"></div>
+      <div id="modalBadgeEstado" style="margin-bottom:8px;"></div>
+      <h3 id="modalTituloAlumno" style="font-size:1.22rem; font-weight:800; color:var(--text-primary); line-height:1.25;"></h3>
+      <p id="modalSubtituloGrado" style="font-size:0.88rem; color:var(--text-secondary); margin-top:4px; font-weight:600;"></p>
+      <div id="modalHoraIngreso" style="margin-top:12px; font-size:0.84rem; font-weight:700; padding:6px 12px; border-radius:8px; background:var(--bg-surface-alt); display:inline-block;"></div>
+    </div>
+  </div>
+
+  <!-- Scripts de Configuración y Lógica del Profesor -->
+  <script src="config-datos.js"></script>
+  <script src="escanear.js"></script>
+</body>
+</html>
